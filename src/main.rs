@@ -13,7 +13,7 @@ use std::{
 };
 
 use actix_files::Files;
-use actix_web::{guard, put, web, App, HttpServer, Responder};
+use actix_web::{guard, middleware::Logger, put, web, App, HttpServer, Responder};
 use model::Report;
 
 use crate::{compare::Comparison, error::ApiResult};
@@ -74,11 +74,20 @@ async fn new_report(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenvy::dotenv().ok();
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
+    pretty_env_logger::init();
+
     let api_key: &'static str =
         Box::leak(Box::new(std::env::var("API_KEY").expect("API_KEY in env")));
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::new(
+                r#"%{r}a "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#,
+            ))
             .app_data(web::PayloadConfig::new(1024 * 1024 * 100))
             .service(
                 web::scope("/report")
