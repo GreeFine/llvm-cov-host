@@ -35,46 +35,49 @@ static DEFAULT_REPORT: LazyLock<RwLock<Option<Report>>> = LazyLock::new(|| RwLoc
 struct NewReport {
     name: String,
     git: String,
-    report_json: Report,
     branch: String,
+    report_raw: serde_json::Value,
 }
 
 #[put("/")]
 async fn new_report(request: web::Json<NewReport>) -> ApiResult<impl Responder> {
-    let mut path = PathBuf::new();
-    path.push(JSON_REPORTS_DIR);
-    path.push(&request.name);
+    let path = PathBuf::from_str(JSON_REPORTS_DIR)
+        .unwrap()
+        .join(&request.name);
+
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
         .open(path.clone())?;
+    let report: Report = serde_json::from_value(request.report_raw.clone())?;
 
     let comparison = {
         let default_report = DEFAULT_REPORT.read().expect("lock on default report");
         if let Some(default_report) = default_report.as_ref() {
-            compare::function_coverage(&request.report_json, default_report)
+            compare::function_coverage(&report, default_report)
         } else {
             Comparison::default()
         }
     };
     if request.name == DEFAULT_REPORT_NAME {
         let mut default_report = DEFAULT_REPORT.write().expect("lock on default report");
-        *default_report = Some(request.report_json.clone());
+        *default_report = Some(report.clone());
     }
 
     let repository_path = git::pull_or_clone(&request.git, &request.branch)?;
 
-    file.write_all(&serde_json::to_vec(&request.report_json).unwrap())?;
+    file.write_all(&serde_json::to_vec(&request.report_raw).unwrap())?;
     // Safety: the str is pre-defined
-    let mut output_path = PathBuf::from_str(HTML_REPORTS_DIR).unwrap();
-    output_path.push(&request.name);
+    let output_path = PathBuf::from_str(HTML_REPORTS_DIR)
+        .unwrap()
+        .join(&request.name);
     Command::new("llvm-cov-pretty")
         .args([
             "--output-dir",
             output_path.to_str().unwrap(),
             "--manifest-path",
-            repository_path.to_str().unwrap(),
+            repository_path.join("Cargo.toml").to_str().unwrap(),
             path.to_str().unwrap(),
         ])
         .spawn()?;

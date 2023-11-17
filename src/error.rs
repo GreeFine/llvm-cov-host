@@ -21,7 +21,7 @@ impl ResponseError for ApiError {
         match self {
             ApiError::SerdeError(_) => StatusCode::BAD_REQUEST,
             ApiError::IoError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Git(e) => match dbg!(e.class()) {
+            ApiError::Git(e) => match e.class() {
                 git2::ErrorClass::Ssh => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },

@@ -31,8 +31,9 @@ fn fetch_options<'a>() -> FetchOptions<'a> {
 pub fn pull_or_clone(url: &str, branch: &str) -> ApiResult<PathBuf> {
     let repository_hex_name = hex::encode(url);
     // safety we expect /tmp to be valid. won't work for windows
-    let mut repository_path = PathBuf::from_str(GIT_CLONE_FOLDER).unwrap();
-    repository_path.push(&repository_hex_name);
+    let repository_path = PathBuf::from_str(GIT_CLONE_FOLDER)
+        .unwrap()
+        .join(repository_hex_name);
 
     if repository_path.exists() {
         let repo: Repository = Repository::open(&repository_path)?;
