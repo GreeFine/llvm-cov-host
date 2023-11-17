@@ -16,7 +16,7 @@ use actix_files::Files;
 use actix_web::{guard, put, web, App, HttpServer, Responder};
 use model::Report;
 
-use crate::error::ApiResult;
+use crate::{compare::Comparison, error::ApiResult};
 
 const JSON_REPORTS_DIR: &str = "./json-reports/";
 const HTML_REPORTS_DIR: &str = "./html-reports/";
@@ -43,12 +43,12 @@ async fn new_report(
     // Check that is look like a valid report
     let report: Report = serde_json::from_slice(&json_content)?;
 
-    let difference = {
+    let comparison = {
         let default_report = DEFAULT_REPORT.read().expect("lock on default report");
         if let Some(default_report) = default_report.as_ref() {
             compare::function_coverage(&report, default_report)
         } else {
-            0f64
+            Comparison::default()
         }
     };
     if name == DEFAULT_REPORT_NAME {
@@ -69,7 +69,7 @@ async fn new_report(
         ])
         .spawn()?;
 
-    Ok(difference.to_string())
+    Ok(serde_json::to_string(&comparison))
 }
 
 #[actix_web::main]
