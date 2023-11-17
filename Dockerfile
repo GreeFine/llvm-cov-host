@@ -15,8 +15,11 @@ COPY . .
 
 RUN cargo +nightly build --release 
 
-FROM debian:stable-slim AS runtime
+# This should be debian:stable-slim but we need rustup to use llvm-cov components and tools
+FROM chef AS runtime
 WORKDIR /app
+RUN rustup component add llvm-tools-x86_64-unknown-linux-gnu
+RUN cargo install cargo-llvm-cov llvm-cov-pretty
 
 RUN apt update && apt install -y ca-certificates && rm -rf /var/lib/apt/lists/* 
 COPY --from=builder /app/target/release/llvm-cov-host /app/llvm-cov-host
