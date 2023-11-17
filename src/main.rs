@@ -1,6 +1,7 @@
 #![feature(lazy_cell)]
 mod compare;
 mod error;
+mod git;
 mod model;
 mod utils;
 
@@ -16,6 +17,7 @@ use std::{
 use actix_files::Files;
 use actix_web::{guard, middleware::Logger, put, web, App, HttpServer, Responder};
 use model::Report;
+use serde::Deserialize;
 
 use crate::{compare::Comparison, error::ApiResult};
 
@@ -26,46 +28,49 @@ const DEFAULT_REPORT_NAME: &str = "main";
 
 static DEFAULT_REPORT: LazyLock<RwLock<Option<Report>>> = LazyLock::new(|| RwLock::new(None));
 
-#[put("/{name}")]
-async fn new_report(
-    name: web::Path<String>,
-    json_content: web::Bytes,
-) -> ApiResult<impl Responder> {
-    let name = &name.into_inner();
+#[derive(Debug, Deserialize)]
+struct NewReport {
+    name: String,
+    git: String,
+    report_json: Report,
+}
+
+#[put("/")]
+async fn new_report(request: web::Json<NewReport>) -> ApiResult<impl Responder> {
     let mut path = PathBuf::new();
     path.push(JSON_REPORTS_DIR);
-    path.push(name);
+    path.push(&request.name);
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
         .open(path.clone())?;
 
-    // Check that is look like a valid report
-    let report: Report = serde_json::from_slice(&json_content)?;
-
     let comparison = {
         let default_report = DEFAULT_REPORT.read().expect("lock on default report");
         if let Some(default_report) = default_report.as_ref() {
-            compare::function_coverage(&report, default_report)
+            compare::function_coverage(&request.report_json, default_report)
         } else {
             Comparison::default()
         }
     };
-    if name == DEFAULT_REPORT_NAME {
+    if request.name == DEFAULT_REPORT_NAME {
         let mut default_report = DEFAULT_REPORT.write().expect("lock on default report");
-        *default_report = Some(report);
+        *default_report = Some(request.report_json.clone());
     }
 
-    file.write_all(&json_content)?;
+    let repository_path = git::pull_or_clone(&request.git)?;
 
+    file.write_all(&serde_json::to_vec(&request.report_json).unwrap())?;
     // Safety: the str is pre-defined
     let mut output_path = PathBuf::from_str(HTML_REPORTS_DIR).unwrap();
-    output_path.push(name);
+    output_path.push(&request.name);
     Command::new("llvm-cov-pretty")
         .args([
             "--output-dir",
             output_path.to_str().unwrap(),
+            "--manifest-path",
+            &repository_path,
             path.to_str().unwrap(),
         ])
         .spawn()?;
@@ -85,7 +90,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new(
                 r#"%{r}a "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#,
             ))
-            .app_data(web::PayloadConfig::new(1024 * 1024 * 100))
+            .app_data(web::JsonConfig::default().limit(1024 * 1024 * 100))
             .service(
                 web::scope("/report")
                     .guard(guard::Header("x-api-key", api_key))
