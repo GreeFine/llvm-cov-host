@@ -2,6 +2,7 @@
 mod compare;
 mod error;
 mod model;
+mod utils;
 
 use std::{
     fs,
@@ -74,11 +75,7 @@ async fn new_report(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenvy::dotenv().ok();
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info");
-    }
-    pretty_env_logger::init();
+    utils::init_environment();
 
     let api_key: &'static str =
         Box::leak(Box::new(std::env::var("API_KEY").expect("API_KEY in env")));
