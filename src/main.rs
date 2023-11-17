@@ -5,6 +5,9 @@ mod git;
 mod model;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 use std::{
     fs,
     io::Write,
@@ -33,6 +36,7 @@ struct NewReport {
     name: String,
     git: String,
     report_json: Report,
+    branch: String,
 }
 
 #[put("/")]
@@ -59,7 +63,7 @@ async fn new_report(request: web::Json<NewReport>) -> ApiResult<impl Responder> 
         *default_report = Some(request.report_json.clone());
     }
 
-    let repository_path = git::pull_or_clone(&request.git)?;
+    let repository_path = git::pull_or_clone(&request.git, &request.branch)?;
 
     file.write_all(&serde_json::to_vec(&request.report_json).unwrap())?;
     // Safety: the str is pre-defined
@@ -70,7 +74,7 @@ async fn new_report(request: web::Json<NewReport>) -> ApiResult<impl Responder> 
             "--output-dir",
             output_path.to_str().unwrap(),
             "--manifest-path",
-            &repository_path,
+            repository_path.to_str().unwrap(),
             path.to_str().unwrap(),
         ])
         .spawn()?;
