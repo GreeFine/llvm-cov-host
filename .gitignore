@@ -1,4 +1,4 @@
 /target
-*-reports/
+output/
 *.json
 .env
