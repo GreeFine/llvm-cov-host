@@ -18,30 +18,41 @@ use std::{
 };
 
 use actix_files::Files;
-use actix_web::{guard, middleware::Logger, put, web, App, HttpServer, Responder};
+use actix_web::{
+    guard,
+    middleware::Logger,
+    put,
+    web::{self, Json},
+    App, HttpServer, Responder,
+};
+use log::error;
 use model::Report;
 use serde::Deserialize;
 
 use crate::{compare::Comparison, error::ApiResult};
 
-const JSON_REPORTS_DIR: &str = "./json-reports/";
-const HTML_REPORTS_DIR: &str = "./html-reports/";
+const JSON_REPORTS_DIR: &str = "./output/json-reports/";
+const HTML_REPORTS_DIR: &str = "./output/html-reports/";
+const REPOSITORIES_DIR: &str = "./output/repositories/";
 /// Name of the report used as comparison to calculate the difference in coverage
 const DEFAULT_REPORT_NAME: &str = "main";
 
 static DEFAULT_REPORT: LazyLock<RwLock<Option<Report>>> = LazyLock::new(|| RwLock::new(None));
 
 #[derive(Debug, Deserialize)]
-struct NewReport {
+struct Request {
     name: String,
     git: String,
     branch: String,
-    report_raw: serde_json::Value,
+    json_report: serde_json::Value,
 }
 
 #[put("/")]
-async fn new_report(request: web::Json<NewReport>) -> ApiResult<impl Responder> {
+async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
+    let report: Report = serde_json::from_value(request.json_report.clone())?;
     let path = PathBuf::from_str(JSON_REPORTS_DIR)
+        .unwrap()
+        .canonicalize()
         .unwrap()
         .join(&request.name);
 
@@ -50,7 +61,33 @@ async fn new_report(request: web::Json<NewReport>) -> ApiResult<impl Responder> 
         .create(true)
         .truncate(true)
         .open(path.clone())?;
-    let report: Report = serde_json::from_value(request.report_raw.clone())?;
+    file.write_all(request.json_report.to_string().as_bytes())?;
+
+    let repository_path = git::pull_or_clone(&request.git, &request.branch)?;
+
+    // Safety: the str is pre-defined
+    let output_path = PathBuf::from_str(HTML_REPORTS_DIR)
+        .unwrap()
+        .canonicalize()
+        .unwrap()
+        .join(&request.name);
+
+    let command = Command::new("llvm-cov-pretty")
+        .current_dir(dbg!(repository_path.canonicalize().unwrap()))
+        .args([
+            "--output-dir",
+            dbg!(output_path.to_str().unwrap()),
+            path.to_str().unwrap(),
+        ])
+        .spawn()?
+        .wait_with_output()?;
+    if !command.status.success() {
+        error!(
+            "Error executing llvm-cov-pretty. code: {}\nstderr: {:#?}\nstdout: {:#?}",
+            command.status, command.stderr, command.stdout
+        );
+        return Err(error::ApiError::LlvmCovPretty);
+    }
 
     let comparison = {
         let default_report = DEFAULT_REPORT.read().expect("lock on default report");
@@ -64,23 +101,6 @@ async fn new_report(request: web::Json<NewReport>) -> ApiResult<impl Responder> 
         let mut default_report = DEFAULT_REPORT.write().expect("lock on default report");
         *default_report = Some(report.clone());
     }
-
-    let repository_path = git::pull_or_clone(&request.git, &request.branch)?;
-
-    file.write_all(&serde_json::to_vec(&request.report_raw).unwrap())?;
-    // Safety: the str is pre-defined
-    let output_path = PathBuf::from_str(HTML_REPORTS_DIR)
-        .unwrap()
-        .join(&request.name);
-    Command::new("llvm-cov-pretty")
-        .args([
-            "--output-dir",
-            output_path.to_str().unwrap(),
-            "--manifest-path",
-            repository_path.join("Cargo.toml").to_str().unwrap(),
-            path.to_str().unwrap(),
-        ])
-        .spawn()?;
 
     Ok(serde_json::to_string(&comparison))
 }

@@ -13,6 +13,8 @@ pub enum ApiError {
     IoError(#[from] io::Error),
     #[error("git error: {0:?}")]
     Git(#[from] git2::Error),
+    #[error("llvm-cov-pretty failed")]
+    LlvmCovPretty,
 }
 
 impl ResponseError for ApiError {
@@ -25,6 +27,7 @@ impl ResponseError for ApiError {
                 git2::ErrorClass::Ssh => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
+            ApiError::LlvmCovPretty => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
