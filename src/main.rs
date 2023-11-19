@@ -73,10 +73,10 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         .join(&request.name);
 
     let command = Command::new("llvm-cov-pretty")
-        .current_dir(dbg!(repository_path.canonicalize().unwrap()))
+        .current_dir(repository_path.canonicalize().unwrap())
         .args([
             "--output-dir",
-            dbg!(output_path.to_str().unwrap()),
+            output_path.to_str().unwrap(),
             path.to_str().unwrap(),
         ])
         .spawn()?
