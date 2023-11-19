@@ -1,0 +1,7 @@
+/target
+output/
+*.json
+.env
+*.tfvars
+id_ed25519*
+terraform/.terraform*
