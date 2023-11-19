@@ -14,11 +14,11 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-    
+
 jobs:
   build-api:
     if: github.event.pull_request.draft == false
-    runs-on: [linux]
+    runs-on: [ubuntu-latest]
     steps:
       - uses: actions/cache@v3
         with:
