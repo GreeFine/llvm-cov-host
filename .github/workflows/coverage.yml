@@ -1,0 +1,51 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "api/src/**"
+      - "api/.docker/**"
+      - ".github/workflows/build-and-deploy-api.yml"
+  pull_request:
+    branches: ["main"]
+    types: [ready_for_review, opened, reopened, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+    
+jobs:
+  build-api:
+    if: github.event.pull_request.draft == false
+    runs-on: [linux]
+    steps:
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.OS }}-cargo-
+      - name: Set up toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: llvm-tools
+      - name: Install cargo--llvm-cov
+        run: cargo install cargo-llvm-cov
+      - name: Run tests and get coverage
+        run: cargo llvm-cov --json > new-report.json
+      - name: Prepare and send the coverage to the server
+        run: |
+          sed -i '1s#^#{ "name": "'$(git rev-parse --abbrev-ref HEAD)'", "git": "'$(git remote get-url origin)'", "branch": "main", "json_report": #' new-report.json
+          echo '}' >> new-report.json
+          curl -X PUT \
+            -H "Content-type: application/json" \
+            -H "x-api-key: ${{ secrets.API_KEY }}" \
+            -d "@new-report.json" \
+            coverage.preview.blackfoot.dev/report/
+      
