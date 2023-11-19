@@ -4,9 +4,9 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "api/src/**"
-      - "api/.docker/**"
-      - ".github/workflows/build-and-deploy-api.yml"
+      - "src/**"
+      - "Cargo*"
+      - ".github/workflows/coverage.yml"
   pull_request:
     branches: ["main"]
     types: [ready_for_review, opened, reopened, synchronize]
