@@ -2,3 +2,5 @@
 output/
 *.json
 .env
+*.tfvars
+id_ed25519*

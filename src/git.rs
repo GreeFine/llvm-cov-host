@@ -7,7 +7,7 @@ use crate::error::ApiResult;
 fn fetch_options<'a>() -> FetchOptions<'a> {
     let mut callbacks = RemoteCallbacks::new();
     let priv_key_path = PathBuf::from_str(
-        &env::var("PRIVATE_SSH_KEY")
+        &env::var("SSH_KEY_PATH")
             .unwrap_or_else(|_| format!("{}/.ssh/id_ed25519", env::var("HOME").unwrap())),
     )
     .unwrap();
