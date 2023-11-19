@@ -20,7 +20,7 @@ resource "kubernetes_secret" "env" {
 
   data = {
     API_KEY      = var.API_KEY
-    SSH_KEY_PATH = local.key_path
+    SSH_KEY_PATH = "${local.key_path}/id_ed25519"
     RUST_LOG     = "info"
   }
 
