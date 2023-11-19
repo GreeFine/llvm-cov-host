@@ -7,7 +7,7 @@ Self hosted coverage host.
 Using [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov), and [llvm-cov-pretty](https://github.com/dnaka91/llvm-cov-pretty), we gather and host the generated HTML.
 It also makes a comparison against previously sent report and sent it back to use it in the CI.
 
-**Table of Contents**
+**Table of Content**
 
 - [llvm cov host](#llvm-cov-host)
 - [Usage](#usage)
@@ -18,6 +18,7 @@ It also makes a comparison against previously sent report and sent it back to us
     - [Request payload for PUT /report](#request-payload-for-put-report)
   - [View reports](#view-reports)
 - [Usage in Github Workflow](#usage-in-github-workflow)
+- [Persistance](#persistance)
 - [Features](#features)
 - [Contribute](#contribute)
 
@@ -90,16 +91,22 @@ From the example above to see the report we uploaded go to : http://localhost:80
 
 The workflow [coverage](.github/workflows/coverage.yml) is an example on how to send reports to the server
 
+# Persistance
+
+All Json reports received, and HTML export will be stored in the `output` directory \
+It also contain repository that where cloned, there is no cleanup or check on the size of this directory for now.
+
 # Features
 
 - [x] Generating the HTML report
 - [x] Cloning the repository to have the sources in the report
 - [x] Serving HTML reports
 - [x] Github Action example
-- [] Compare with previous reports
-- [] Keep coverage % history
-- [] Authentication
-- [] Permissions
+- [ ] Compare with previous reports
+- [ ] Keep coverage % history
+- [ ] Authentication
+- [ ] Permissions
+- [ ] Repository cleanup
 
 # Contribute
 
