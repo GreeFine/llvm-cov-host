@@ -1,11 +1,25 @@
 # llvm cov host
 
-> This project is under Development ⚠️
+> **This project is under Development ⚠️**
 
 Self hosted coverage host.
 
 Using [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov), and [llvm-cov-pretty](https://github.com/dnaka91/llvm-cov-pretty), we gather and host the generated HTML.
 It also makes a comparison against previously sent report and sent it back to use it in the CI.
+
+**Table of Contents**
+
+- [llvm cov host](#llvm-cov-host)
+- [Usage](#usage)
+  - [Start the server](#start-the-server)
+    - [From source](#from-source)
+    - [with docker](#with-docker)
+  - [Send a coverage report](#send-a-coverage-report)
+    - [Request payload for PUT /report](#request-payload-for-put-report)
+  - [View reports](#view-reports)
+- [Usage in Github Workflow](#usage-in-github-workflow)
+- [Features](#features)
+- [Contribute](#contribute)
 
 # Usage
 
@@ -64,12 +78,29 @@ struct Request {
 }
 ```
 
+## View reports
+
+Reports are accessible on the `/view/{name}/index.html` route.\
+From the example above to see the report we uploaded go to : http://localhost:8080/view/test/index.html
+
+> NOTE ⚠️: The access to reports is not secured by any authentication, thus making the source code accessible publicly
+
+
+# Usage in Github Workflow
+
+The workflow [coverage](.github/workflows/coverage.yml) is an example on how to send reports to the server
+
 # Features
 
 - [x] Generating the HTML report
 - [x] Cloning the repository to have the sources in the report
 - [x] Serving HTML reports
+- [x] Github Action example
 - [] Compare with previous reports
 - [] Keep coverage % history
 - [] Authentication
 - [] Permissions
+
+# Contribute
+
+Any contributions are welcomed !
