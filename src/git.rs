@@ -11,9 +11,7 @@ fn fetch_options<'a>() -> FetchOptions<'a> {
             .unwrap_or_else(|_| format!("{}/.ssh/id_ed25519", env::var("HOME").unwrap())),
     )
     .unwrap();
-    let priv_key = fs::read_to_string(&priv_key_path).unwrap();
     let pub_key_path = priv_key_path.with_extension("pub");
-    let pub_key = fs::read_to_string(pub_key_path).unwrap();
 
     let mut credential_tries = 0;
     callbacks.credentials(move |_url, username_from_url, allowed_types| {
@@ -29,10 +27,10 @@ fn fetch_options<'a>() -> FetchOptions<'a> {
         }
         credential_tries += 1;
 
-        Cred::ssh_key_from_memory(
+        Cred::ssh_key(
             username_from_url.unwrap(),
-            Some(&pub_key),
-            &priv_key,
+            Some(&pub_key_path),
+            &priv_key_path,
             env::var("SSH_KEY_PASSPHRASE").as_deref().ok(),
         )
     });
