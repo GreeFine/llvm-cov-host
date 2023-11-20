@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: Coverage & Uploading reports
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-api:
+  coverage:
     if: github.event.pull_request.draft == false
     runs-on: [ubuntu-latest]
     steps:
