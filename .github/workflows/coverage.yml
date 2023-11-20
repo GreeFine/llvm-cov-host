@@ -37,7 +37,9 @@ jobs:
           toolchain: nightly
           components: llvm-tools
       - name: Install cargo--llvm-cov
-        run: cargo install cargo-llvm-cov
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-llvm-cov
       - name: Run tests and get coverage
         run: cargo llvm-cov --json > new-report.json
       - name: Prepare and send the coverage to the server
@@ -48,4 +50,4 @@ jobs:
             -H "Content-type: application/json" \
             -H "x-api-key: ${{ secrets.API_KEY }}" \
             -d "@new-report.json" \
-            coverage.preview.blackfoot.dev/report/
+            coverage.preview.blackfoot.dev/report

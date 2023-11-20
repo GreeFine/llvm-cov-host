@@ -47,7 +47,7 @@ struct Request {
     json_report: serde_json::Value,
 }
 
-#[put("/")]
+#[put("")]
 async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
     let report: Report = serde_json::from_value(request.json_report.clone())?;
     let path = PathBuf::from_str(JSON_REPORTS_DIR)
