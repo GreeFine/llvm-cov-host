@@ -20,6 +20,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: [ubuntu-latest]
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/cache@v3
         with:
           path: |
@@ -48,4 +49,3 @@ jobs:
             -H "x-api-key: ${{ secrets.API_KEY }}" \
             -d "@new-report.json" \
             coverage.preview.blackfoot.dev/report/
-      
