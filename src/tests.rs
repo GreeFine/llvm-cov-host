@@ -29,7 +29,12 @@ fn test_git_clone() {
 fn test_git_clone_ssh() {
     dotenvy::dotenv().ok();
 
-    let path = git::pull_or_clone("git@github.com:GreeFine/llvm-cov-host.git", "main").unwrap();
-    assert!(path.exists());
-    let _ = fs::remove_dir_all(&path);
+    let path = git::pull_or_clone("git@github.com:GreeFine/llvm-cov-host.git", "main");
+    if git::get_ssh_key_path().exists() {
+        let path = path.unwrap();
+        assert!(path.exists());
+        let _ = fs::remove_dir_all(&path);
+    } else {
+        assert!(path.is_err())
+    }
 }
