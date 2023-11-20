@@ -44,6 +44,7 @@ resource "kubernetes_deployment" "llvm_cov_host" {
           volume_mount {
             name       = "keys"
             mount_path = local.key_path
+            read_only  = true
           }
           resources {
             limits = {
@@ -67,7 +68,8 @@ resource "kubernetes_deployment" "llvm_cov_host" {
         volume {
           name = "keys"
           secret {
-            secret_name = kubernetes_secret.keys.metadata[0].name
+            secret_name  = kubernetes_secret.keys.metadata[0].name
+            default_mode = 0600
           }
         }
       }

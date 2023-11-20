@@ -25,7 +25,7 @@ use actix_web::{
     web::{self, Json},
     App, HttpServer, Responder,
 };
-use log::error;
+use log::{error, info};
 use model::Report;
 use serde::Deserialize;
 
@@ -49,6 +49,10 @@ struct Request {
 
 #[put("")]
 async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
+    info!(
+        "Request {}, git: {}, branch: {}",
+        request.name, request.git, request.branch
+    );
     let report: Report = serde_json::from_value(request.json_report.clone())?;
     let path = PathBuf::from_str(JSON_REPORTS_DIR)
         .unwrap()

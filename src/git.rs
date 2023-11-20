@@ -48,6 +48,7 @@ fn create_fetch_options<'a>() -> FetchOptions<'a> {
     fo
 }
 
+/// Clone the repository, or pull if it already exist, [create_fetch_options] is used to provide authentication.
 pub fn pull_or_clone(url: &str, branch: &str) -> ApiResult<PathBuf> {
     let repository_hex_name = hex::encode(url);
     // safety we expect /tmp to be valid. won't work for windows
