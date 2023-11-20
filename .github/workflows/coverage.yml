@@ -34,7 +34,7 @@ jobs:
       - name: Set up toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: nightly
           components: llvm-tools
       - name: Install cargo--llvm-cov
         run: cargo install cargo-llvm-cov
