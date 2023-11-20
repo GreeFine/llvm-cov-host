@@ -50,4 +50,4 @@ jobs:
             -H "Content-type: application/json" \
             -H "x-api-key: ${{ secrets.API_KEY }}" \
             -d "@new-report.json" \
-            coverage.preview.blackfoot.dev/report
+            https://coverage.preview.blackfoot.dev/report

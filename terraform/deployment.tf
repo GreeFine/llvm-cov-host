@@ -6,6 +6,9 @@ resource "kubernetes_deployment" "llvm_cov_host" {
   }
 
   spec {
+    strategy {
+      type = "Recreate"
+    }
     selector {
       match_labels = {
         run = local.name
