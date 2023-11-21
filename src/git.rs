@@ -84,5 +84,5 @@ pub fn pull_or_clone(url: &str, branch: &str) -> ApiResult<PathBuf> {
             Err(error)?;
         }
     }
-    Ok(repository_path)
+    Ok(repository_path.canonicalize().unwrap())
 }

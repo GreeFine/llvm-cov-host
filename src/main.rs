@@ -58,20 +58,31 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         request.name, request.git, request.branch
     );
     let report: Report = serde_json::from_value(request.json_report.clone())?;
-    let path = PathBuf::from_str(JSON_REPORTS_DIR)
+
+    let repository_path = git::pull_or_clone(&request.git, &request.branch)?;
+
+    // The working directory when the report was created, this need to be change with our path to the project.
+    let raw_report = request.json_report.to_string();
+    let outdated_working_directory = report
+        .cargo_llvm_cov
+        .manifest_path
+        .trim_end_matches("/Cargo.toml");
+    let raw_report_wd_replaced = raw_report.replace(
+        outdated_working_directory,
+        repository_path.to_str().unwrap(),
+    );
+
+    let json_path = PathBuf::from_str(JSON_REPORTS_DIR)
         .unwrap()
         .canonicalize()
         .unwrap()
         .join(&request.name);
-
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(path.clone())?;
-    file.write_all(request.json_report.to_string().as_bytes())?;
-
-    let repository_path = git::pull_or_clone(&request.git, &request.branch)?;
+        .open(json_path.clone())?;
+    file.write_all(raw_report_wd_replaced.as_bytes())?;
 
     // Safety: the str is pre-defined
     let output_path = PathBuf::from_str(HTML_REPORTS_DIR)
@@ -81,13 +92,13 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         .join(&request.name);
 
     let command = Command::new("llvm-cov-pretty")
-        .current_dir(repository_path.canonicalize().unwrap())
+        .current_dir(repository_path)
         .args([
             "--output-dir",
             output_path.to_str().unwrap(),
             "--manifest-path",
             "./Cargo.toml",
-            path.to_str().unwrap(),
+            json_path.to_str().unwrap(),
         ])
         .spawn()?
         .wait_with_output()?;
