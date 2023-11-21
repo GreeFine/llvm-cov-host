@@ -1,4 +1,8 @@
+#![warn(unused_extern_crates)]
+#![warn(clippy::dbg_macro)]
+#![warn(missing_debug_implementations)]
 #![feature(lazy_cell)]
+
 mod compare;
 mod error;
 mod git;
@@ -81,6 +85,8 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         .args([
             "--output-dir",
             output_path.to_str().unwrap(),
+            "--manifest-path",
+            "./Cargo.toml",
             path.to_str().unwrap(),
         ])
         .spawn()?

@@ -1,6 +1,8 @@
 use std::{env, fs, path::PathBuf, str::FromStr};
 
-use git2::{Cred, CredentialType, FetchOptions, RemoteCallbacks, Repository};
+use git2::{
+    CertificateCheckStatus, Cred, CredentialType, FetchOptions, RemoteCallbacks, Repository,
+};
 
 use crate::error::ApiResult;
 
@@ -44,6 +46,9 @@ fn create_fetch_options<'a>() -> FetchOptions<'a> {
             env::var("SSH_KEY_PASSPHRASE").as_deref().ok(),
         )
     });
+    // FIXME: Proper certificate should be done.
+    callbacks.certificate_check(|_, _| Ok(CertificateCheckStatus::CertificateOk));
+
     fo.remote_callbacks(callbacks);
     fo
 }
