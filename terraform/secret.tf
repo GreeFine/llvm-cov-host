@@ -10,7 +10,7 @@ locals {
 
 resource "kubernetes_secret" "env" {
   lifecycle {
-    # ignore_changes = all
+    ignore_changes = all
   }
 
   metadata {

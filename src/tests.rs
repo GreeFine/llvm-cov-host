@@ -2,7 +2,7 @@
 
 use std::fs;
 
-use crate::git;
+use crate::{git, Request};
 
 #[actix_web::test]
 #[ignore = "todo"]
@@ -20,7 +20,13 @@ async fn test_put_report() {
 fn test_git_clone() {
     dotenvy::dotenv().ok();
 
-    let path = git::pull_or_clone("https://github.com/GreeFine/llvm-cov-host.git", "main").unwrap();
+    let request = Request {
+        branch: "main".to_string(),
+        git: "https://github.com/GreeFine/llvm-cov-host.git".to_string(),
+        json_report: serde_json::Value::Null,
+    };
+
+    let path = git::pull_or_clone(&request).unwrap();
     assert!(path.exists());
     let _ = fs::remove_dir_all(&path);
 }
@@ -29,7 +35,13 @@ fn test_git_clone() {
 fn test_git_clone_ssh() {
     dotenvy::dotenv().ok();
 
-    let path = git::pull_or_clone("git@github.com:GreeFine/llvm-cov-host.git", "main");
+    let request = Request {
+        branch: "main".to_string(),
+        git: "git@github.com:GreeFine/llvm-cov-host.git".to_string(),
+        json_report: serde_json::Value::Null,
+    };
+
+    let path = git::pull_or_clone(&request);
     if git::get_ssh_key_path().exists() {
         let path = path.unwrap();
         assert!(path.exists());

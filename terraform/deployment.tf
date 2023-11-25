@@ -69,7 +69,7 @@ resource "kubernetes_deployment" "llvm_cov_host" {
           name = "keys"
           secret {
             secret_name  = kubernetes_secret.keys.metadata[0].name
-            default_mode = 0600
+            default_mode = "0600"
           }
         }
       }

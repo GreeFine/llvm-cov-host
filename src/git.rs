@@ -4,7 +4,7 @@ use git2::{
     CertificateCheckStatus, Cred, CredentialType, FetchOptions, RemoteCallbacks, Repository,
 };
 
-use crate::error::ApiResult;
+use crate::{error::ApiResult, Request};
 
 /// Get path from ENV key SSH_KEY_PATH or default to id_ed25519 in the home .ssh directory
 pub fn get_ssh_key_path() -> PathBuf {
@@ -54,17 +54,18 @@ fn create_fetch_options<'a>() -> FetchOptions<'a> {
 }
 
 /// Clone the repository, or pull if it already exist, [create_fetch_options] is used to provide authentication.
-pub fn pull_or_clone(url: &str, branch: &str) -> ApiResult<PathBuf> {
-    let repository_hex_name = hex::encode(url);
+pub fn pull_or_clone(request: &Request) -> ApiResult<PathBuf> {
     // safety we expect /tmp to be valid. won't work for windows
     let repository_path = PathBuf::from_str(crate::REPOSITORIES_DIR)
         .unwrap()
-        .join(repository_hex_name);
+        .join(request.name());
 
     let mut fo = create_fetch_options();
     if repository_path.exists() && repository_path.read_dir()?.next().is_some() {
         let repo: Repository = Repository::open(&repository_path)?;
-        let (object, reference) = repo.revparse_ext(branch).expect("Object not found");
+        let (object, reference) = repo
+            .revparse_ext(&request.branch)
+            .expect("Object not found");
         repo.checkout_tree(&object, None)
             .expect("Failed to checkout");
         repo.set_head(reference.unwrap().name().unwrap())
@@ -72,12 +73,12 @@ pub fn pull_or_clone(url: &str, branch: &str) -> ApiResult<PathBuf> {
 
         let mut remote = repo.find_remote("origin").expect("default remote origin");
         fo.download_tags(git2::AutotagOption::All);
-        remote.fetch(&[branch], Some(&mut fo), None)?;
+        remote.fetch(&[&request.branch], Some(&mut fo), None)?;
     } else {
         let mut cloner = git2::build::RepoBuilder::new();
         cloner.fetch_options(fo);
-        cloner.branch(branch);
-        if let Err(error) = cloner.clone(url, &repository_path) {
+        cloner.branch(&request.branch);
+        if let Err(error) = cloner.clone(&request.git, &repository_path) {
             if repository_path.exists() {
                 fs::remove_dir_all(&repository_path).expect("removing git dir after failed clone");
             }
