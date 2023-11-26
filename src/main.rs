@@ -1,4 +1,4 @@
-#![warn(unused_extern_crates)]
+#![warn(unused_crate_dependencies)]
 #![warn(clippy::dbg_macro)]
 #![warn(missing_debug_implementations)]
 #![feature(lazy_cell)]
@@ -29,6 +29,7 @@ use actix_web::{
     web::{self, Json},
     App, HttpServer, Responder,
 };
+use error::ApiError;
 use log::{error, info};
 use model::Report;
 use serde::Deserialize;
@@ -45,10 +46,14 @@ static DEFAULT_REPORT: LazyLock<RwLock<Option<Report>>> = LazyLock::new(|| RwLoc
 
 #[derive(Debug, Deserialize)]
 struct Request {
+    /// Url of the git repository associated to this report.
+    ///
+    /// We need to clone the repository so we can package the sources into the export.
     git: String,
+    /// Branch of git repository associated to this report.
     branch: String,
+    /// The report generated when running `cargo llvm-cov --json`
     json_report: serde_json::Value,
-    workspace_path: Option<String>,
 }
 
 impl Request {
@@ -76,19 +81,51 @@ impl Request {
     }
 }
 
+fn find_matching_project_path<'a>(
+    local_repository: &Path,
+    remote_filepath: &'a str,
+) -> ApiResult<&'a str> {
+    let separators_positions: Vec<_> = remote_filepath
+        .chars()
+        .enumerate()
+        .filter_map(|(idx, e)| (e == '/').then_some(idx))
+        .collect();
+    // Try to get an existing path from joining our local repository path with the one sent by the user
+    // Start from the end of the filepath and for each subsequent tries take one more ancestors of the filepath
+    let matching_project_path = separators_positions.iter().rev().find_map(|&sep| {
+        let path = &remote_filepath[sep + 1..];
+        local_repository
+            .join(path)
+            .exists()
+            .then_some(&remote_filepath[..sep])
+    });
+
+    matching_project_path.ok_or(ApiError::FailedReportFilePathReplace)
+}
+
+/// Modify the report sources paths, with the path to the locally clone repository
+///
+/// In the case of a project that use workspaces, we need to find the root path first.
 fn raw_report_with_local_repository(
     request: &Request,
     report: &Report,
     local_repository: &Path,
-) -> String {
-    let raw_report = request.json_report.to_string();
-    let original_path = request.workspace_path.as_deref().unwrap_or_else(|| {
-        report
-            .cargo_llvm_cov
-            .manifest_path
-            .trim_end_matches("/Cargo.toml")
-    });
-    raw_report.replace(original_path, local_repository.to_str().unwrap())
+) -> ApiResult<String> {
+    let report_data = report.data.first().ok_or(ApiError::NoReportData)?;
+    // try to get a file cited in the report
+    // we filter out any file containing the path "/.cargo/registry" to avoid dependency files
+    let any_project_file_path = &report_data
+        .files
+        .iter()
+        .find(|f| !f.filename.contains("/.cargo/registry"))
+        .ok_or(ApiError::NoProjectFile)?
+        .filename;
+    let old_file_path = find_matching_project_path(local_repository, any_project_file_path)?;
+
+    Ok(request
+        .json_report
+        .to_string()
+        .replace(old_file_path, local_repository.to_str().unwrap()))
 }
 
 #[put("")]
@@ -98,7 +135,7 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
 
     let repository_path = git::pull_or_clone(&request)?;
 
-    let raw_report = raw_report_with_local_repository(&request, &report, &repository_path);
+    let raw_report = raw_report_with_local_repository(&request, &report, &repository_path)?;
 
     // The working directory when the report was created, this need to be change with our path to the project.
     let json_path = PathBuf::from_str(JSON_REPORTS_DIR)
@@ -181,15 +218,31 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[test]
-fn get_name() {
+fn test_get_name() {
     let request = Request {
         branch: "main/aqwqe/2".to_string(),
         git: "https://github.com/GreeFine/llvm-cov-host".to_string(),
         json_report: serde_json::Value::Null,
-        workspace_path: None,
     };
     assert_eq!(
         request.name(),
         "https-github-com-GreeFine-llvm-cov-host-main-aqwqe-2"
     );
+}
+
+#[test]
+fn test_raw_report_with_local_repository() {
+    use std::fs::{self, File};
+
+    let dir = Path::new("/tmp/test-llvm-cov-host/api/src");
+    fs::create_dir_all(dir).unwrap();
+    File::create(dir.join("compare.rs")).unwrap();
+
+    let local_repository = Path::new("/tmp/test-llvm-cov-host/");
+    let remote_filepath = "/home/greefine/Projects/llvm-cov-host/api/src/compare.rs";
+    let old_path = find_matching_project_path(local_repository, remote_filepath).unwrap();
+
+    fs::remove_dir_all("/tmp/test-llvm-cov-host/").unwrap();
+
+    assert_eq!(old_path, "/home/greefine/Projects/llvm-cov-host");
 }

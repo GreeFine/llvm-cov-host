@@ -15,19 +15,28 @@ pub enum ApiError {
     Git(#[from] git2::Error),
     #[error("llvm-cov-pretty failed")]
     LlvmCovPretty,
+    #[error("report data is empty")]
+    NoReportData,
+    #[error("didn't find a source file in the report")]
+    NoProjectFile,
+    #[error("didn't succeed in finding report filepath with our local repository")]
+    FailedReportFilePathReplace,
 }
 
 impl ResponseError for ApiError {
     fn status_code(&self) -> StatusCode {
         error!("{self:#?}");
         match self {
-            ApiError::SerdeError(_) => StatusCode::BAD_REQUEST,
-            ApiError::IoError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Git(e) => match e.class() {
+            Self::SerdeError(_) | Self::NoReportData | Self::NoProjectFile => {
+                StatusCode::BAD_REQUEST
+            }
+            Self::IoError(_) | Self::LlvmCovPretty | Self::FailedReportFilePathReplace => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+            Self::Git(e) => match e.class() {
                 git2::ErrorClass::Ssh => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
-            ApiError::LlvmCovPretty => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
