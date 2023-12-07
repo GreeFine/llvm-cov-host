@@ -760,6 +760,7 @@ dependencies = [
  "git2",
  "log",
  "pretty_env_logger",
+ "regex",
  "serde",
  "serde_json",
  "thiserror",

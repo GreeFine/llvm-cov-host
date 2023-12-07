@@ -32,6 +32,7 @@ use actix_web::{
 use error::ApiError;
 use log::{error, info};
 use model::Report;
+use regex::{self, Regex};
 use serde::Deserialize;
 
 use crate::{compare::Comparison, error::ApiResult};
@@ -43,6 +44,10 @@ const REPOSITORIES_DIR: &str = "./output/repositories/";
 const DEFAULT_REPORT_NAME: &str = "main";
 
 static DEFAULT_REPORT: LazyLock<RwLock<Option<Report>>> = LazyLock::new(|| RwLock::new(None));
+static REPOSITORY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(.*@.*:|https:\/\/.*\.*.\/)(?<name>[A-z-]{0,100}\/[A-z-]{0,100})\.git"#)
+        .expect("valid regex for repository")
+});
 
 #[derive(Debug, Deserialize)]
 struct Request {
@@ -57,27 +62,30 @@ struct Request {
 }
 
 impl Request {
+    /// try to extract the project name from the git path, or return an url safe version of the git address
     fn name(&self) -> String {
-        let mut name = String::with_capacity(self.git.len() + self.branch.len() + 1);
-        name.push_str(&self.git);
-        name.push('-');
-        name.push_str(&self.branch);
-        let mut prev_is_dash = false;
-        let name_safe: String = name
-            .chars()
-            .filter_map(|c| {
-                if c.is_ascii_alphanumeric() {
-                    prev_is_dash = false;
-                    Some(c)
-                } else {
-                    (!prev_is_dash).then(|| {
-                        prev_is_dash = true;
-                        '-'
-                    })
-                }
-            })
-            .collect();
-        name_safe
+        let capture = REPOSITORY_REGEX.captures(&self.git);
+        if let Some(name) = capture.map(|c| c.name("name").unwrap().as_str()) {
+            name.to_string()
+        } else {
+            let mut prev_is_dash = false;
+            let name_safe: String = self
+                .git
+                .chars()
+                .filter_map(|c| {
+                    if c.is_ascii_alphanumeric() {
+                        prev_is_dash = false;
+                        Some(c.to_ascii_lowercase())
+                    } else {
+                        (!prev_is_dash).then(|| {
+                            prev_is_dash = true;
+                            '-'
+                        })
+                    }
+                })
+                .collect();
+            name_safe
+        }
     }
 }
 
