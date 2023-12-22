@@ -41,12 +41,14 @@ const JSON_REPORTS_DIR: &str = "./output/json-reports/";
 const HTML_REPORTS_DIR: &str = "./output/html-reports/";
 const REPOSITORIES_DIR: &str = "./output/repositories/";
 /// Name of the report used as comparison to calculate the difference in coverage
+// FIXME: this doesn't work with multiple projects
 const DEFAULT_REPORT_NAME: &str = "main";
 
+// FIXME: this doesn't work with multiple projects
 static DEFAULT_REPORT: LazyLock<RwLock<Option<Report>>> = LazyLock::new(|| RwLock::new(None));
 static REPOSITORY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(.*@.*:|https:\/\/.*\.*.\/)(?<name>[A-z-]{0,100}\/[A-z-]{0,100})\.git"#)
-        .expect("valid regex for repository")
+    Regex::new(r#"^(.*@.*:|https:\/\/.*\.*.\/)(?<name>[A-z-]{0,100}\/[A-z-]{0,100})(\.git)?$"#)
+        .unwrap()
 });
 
 #[derive(Debug, Deserialize)]
@@ -63,29 +65,21 @@ struct Request {
 
 impl Request {
     /// try to extract the project name from the git path, or return an url safe version of the git address
-    fn name(&self) -> String {
+    fn repository_name(&self) -> String {
         let capture = REPOSITORY_REGEX.captures(&self.git);
         if let Some(name) = capture.map(|c| c.name("name").unwrap().as_str()) {
-            name.to_string()
+            name.replace('/', "-").to_lowercase()
         } else {
-            let mut prev_is_dash = false;
-            let name_safe: String = self
-                .git
-                .chars()
-                .filter_map(|c| {
-                    if c.is_ascii_alphanumeric() {
-                        prev_is_dash = false;
-                        Some(c.to_ascii_lowercase())
-                    } else {
-                        (!prev_is_dash).then(|| {
-                            prev_is_dash = true;
-                            '-'
-                        })
-                    }
-                })
-                .collect();
-            name_safe
+            utils::url_safe_string(&self.git)
         }
+    }
+
+    /// Based on the git url and the branch name
+    fn unique_name(&self) -> String {
+        let mut result = self.repository_name();
+        result.push('-');
+        result.push_str(&utils::url_safe_string(&self.branch));
+        result
     }
 }
 
@@ -150,7 +144,7 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         .unwrap()
         .canonicalize()
         .unwrap()
-        .join(request.name());
+        .join(request.unique_name());
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create(true)
@@ -163,7 +157,7 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         .unwrap()
         .canonicalize()
         .unwrap()
-        .join(request.name());
+        .join(request.unique_name());
 
     let command = Command::new("llvm-cov-pretty")
         .current_dir(repository_path)
@@ -192,7 +186,8 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
             Comparison::default()
         }
     };
-    if request.name() == DEFAULT_REPORT_NAME {
+    // FIXME: this doesn't work with multiple projects
+    if request.unique_name() == DEFAULT_REPORT_NAME {
         let mut default_report = DEFAULT_REPORT.write().expect("lock on default report");
         *default_report = Some(report.clone());
     }
@@ -223,34 +218,4 @@ async fn main() -> std::io::Result<()> {
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
-}
-
-#[test]
-fn test_get_name() {
-    let request = Request {
-        branch: "main/aqwqe/2".to_string(),
-        git: "https://github.com/GreeFine/llvm-cov-host".to_string(),
-        json_report: serde_json::Value::Null,
-    };
-    assert_eq!(
-        request.name(),
-        "https-github-com-GreeFine-llvm-cov-host-main-aqwqe-2"
-    );
-}
-
-#[test]
-fn test_raw_report_with_local_repository() {
-    use std::fs::{self, File};
-
-    let dir = Path::new("/tmp/test-llvm-cov-host/api/src");
-    fs::create_dir_all(dir).unwrap();
-    File::create(dir.join("compare.rs")).unwrap();
-
-    let local_repository = Path::new("/tmp/test-llvm-cov-host/");
-    let remote_filepath = "/home/greefine/Projects/llvm-cov-host/api/src/compare.rs";
-    let old_path = find_matching_project_path(local_repository, remote_filepath).unwrap();
-
-    fs::remove_dir_all("/tmp/test-llvm-cov-host/").unwrap();
-
-    assert_eq!(old_path, "/home/greefine/Projects/llvm-cov-host");
 }

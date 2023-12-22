@@ -20,3 +20,21 @@ pub fn init_environment() {
         fs::create_dir_all(repos_dir).unwrap();
     };
 }
+
+pub fn url_safe_string(input: &str) -> String {
+    let mut prev_is_dash = false;
+    input
+        .chars()
+        .filter_map(|c| {
+            if c.is_ascii_alphanumeric() {
+                prev_is_dash = false;
+                Some(c.to_ascii_lowercase())
+            } else {
+                (!prev_is_dash).then(|| {
+                    prev_is_dash = true;
+                    '-'
+                })
+            }
+        })
+        .collect()
+}
