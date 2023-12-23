@@ -27,13 +27,12 @@ resource "kubernetes_ingress_v1" "llvm_cov_host" {
       "kubernetes.io/ingress.class"                           = "traefik"
       "traefik.ingress.kubernetes.io/router.tls"              = "true"
       "traefik.ingress.kubernetes.io/router.tls.certresolver" = "letsencrypt"
-      # "traefik.ingress.kubernetes.io/router.middlewares"      = "traefik-wireguard-ip-whitelist@kubernetescrd"  
     }
   }
 
   spec {
     rule {
-      host = "coverage.preview.blackfoot.dev"
+      host = "llvm-cov-host.greefine.fr"
 
       http {
         path {

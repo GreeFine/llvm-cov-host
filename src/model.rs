@@ -69,6 +69,7 @@ pub struct Data {
     pub functions: Vec<Function>,
     pub totals: Summary,
 }
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Report {
     pub cargo_llvm_cov: CargoLlvmCov,

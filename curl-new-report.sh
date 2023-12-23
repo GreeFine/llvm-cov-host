@@ -1,7 +1,7 @@
 set -e
 
 cargo llvm-cov --json > new-report.json
-sed -i '1s#^#{ "name": "test", "git": "'$(git remote get-url origin)'", "branch": "main", "json_report": #' new-report.json
+sed -i '1s#^#{ "git": "'$(git remote get-url origin)'", "branch": "main", "json_report": #' new-report.json
 echo '}' >> new-report.json
 
 STATUS_CODE=$(

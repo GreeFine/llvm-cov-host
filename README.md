@@ -102,11 +102,11 @@ It also contain repository that where cloned, there is no cleanup or check on th
 - [x] Cloning the repository to have the sources in the report
 - [x] Serving HTML reports
 - [x] Github Action example
+- [x] Works with cargo namespaces
 - [ ] Compare with previous reports
 - [ ] Keep coverage % history
 - [ ] Authentication
 - [ ] Permissions
-- [ ] Repository cleanup
 
 # Contribute
 
