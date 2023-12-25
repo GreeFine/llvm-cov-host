@@ -1,5 +1,7 @@
 use std::{fs, path::Path};
 
+use crate::config;
+
 pub fn init_environment() {
     dotenvy::dotenv().ok();
     if std::env::var("RUST_LOG").is_err() {
@@ -7,15 +9,15 @@ pub fn init_environment() {
     }
     pretty_env_logger::init();
 
-    let json_dir = Path::new(crate::JSON_REPORTS_DIR);
+    let json_dir = Path::new(config::JSON_REPORTS_DIR);
     if !json_dir.is_dir() {
         fs::create_dir_all(json_dir).unwrap();
     };
-    let html_dir = Path::new(crate::HTML_REPORTS_DIR);
+    let html_dir = Path::new(config::HTML_REPORTS_DIR);
     if !html_dir.is_dir() {
         fs::create_dir_all(html_dir).unwrap();
     };
-    let repos_dir = Path::new(crate::REPOSITORIES_DIR);
+    let repos_dir = Path::new(config::REPOSITORIES_DIR);
     if !repos_dir.is_dir() {
         fs::create_dir_all(repos_dir).unwrap();
     };

@@ -9,6 +9,7 @@ mod git;
 mod model;
 mod utils;
 
+mod config;
 #[cfg(test)]
 mod tests;
 
@@ -18,7 +19,6 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
     str::FromStr,
-    sync::{LazyLock, RwLock},
 };
 
 use actix_files::Files;
@@ -32,24 +32,9 @@ use actix_web::{
 use error::ApiError;
 use log::{error, info};
 use model::Report;
-use regex::{self, Regex};
 use serde::Deserialize;
 
 use crate::{compare::Comparison, error::ApiResult};
-
-const JSON_REPORTS_DIR: &str = "./output/json-reports/";
-const HTML_REPORTS_DIR: &str = "./output/html-reports/";
-const REPOSITORIES_DIR: &str = "./output/repositories/";
-/// Name of the report used as comparison to calculate the difference in coverage
-// FIXME: this doesn't work with multiple projects
-const DEFAULT_REPORT_NAME: &str = "main";
-
-// FIXME: this doesn't work with multiple projects
-static DEFAULT_REPORT: LazyLock<RwLock<Option<Report>>> = LazyLock::new(|| RwLock::new(None));
-static REPOSITORY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"^(.*@.*:|https:\/\/.*\.*.\/)(?<name>[A-z-]{0,100}\/[A-z-]{0,100})(\.git)?$"#)
-        .unwrap()
-});
 
 #[derive(Debug, Deserialize)]
 struct Request {
@@ -66,7 +51,7 @@ struct Request {
 impl Request {
     /// try to extract the project name from the git path, or return an url safe version of the git address
     fn repository_name(&self) -> String {
-        let capture = REPOSITORY_REGEX.captures(&self.git);
+        let capture = config::REPOSITORY_REGEX.captures(&self.git);
         if let Some(name) = capture.map(|c| c.name("name").unwrap().as_str()) {
             name.replace('/', "-").to_lowercase()
         } else {
@@ -140,7 +125,7 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
     let raw_report = raw_report_with_local_repository(&request, &report, &repository_path)?;
 
     // The working directory when the report was created, this need to be change with our path to the project.
-    let json_path = PathBuf::from_str(JSON_REPORTS_DIR)
+    let json_path = PathBuf::from_str(config::JSON_REPORTS_DIR)
         .unwrap()
         .canonicalize()
         .unwrap()
@@ -153,7 +138,7 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
     file.write_all(raw_report.as_bytes())?;
 
     // Safety: the str is pre-defined
-    let output_path = PathBuf::from_str(HTML_REPORTS_DIR)
+    let output_path = PathBuf::from_str(config::HTML_REPORTS_DIR)
         .unwrap()
         .canonicalize()
         .unwrap()
@@ -178,21 +163,25 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         return Err(error::ApiError::LlvmCovPretty);
     }
 
-    let comparison = {
-        let default_report = DEFAULT_REPORT.read().expect("lock on default report");
-        if let Some(default_report) = default_report.as_ref() {
+    let base_comparison = {
+        let default_branch_reports = compare::DEFAULT_BRANCH_REPORTS
+            .read()
+            .expect("lock on default report");
+        if let Some(default_report) = default_branch_reports.get(&request.branch) {
             compare::function_coverage(&report, default_report)
         } else {
             Comparison::default()
         }
     };
-    // FIXME: this doesn't work with multiple projects
-    if request.unique_name() == DEFAULT_REPORT_NAME {
-        let mut default_report = DEFAULT_REPORT.write().expect("lock on default report");
-        *default_report = Some(report.clone());
+    if request.branch == config::DEFAULT_REPORT_BRANCH {
+        let mut default_report = compare::DEFAULT_BRANCH_REPORTS
+            .write()
+            .expect("lock on default report");
+
+        default_report.insert(request.branch.clone(), report);
     }
 
-    Ok(serde_json::to_string(&comparison))
+    Ok(serde_json::to_string(&base_comparison))
 }
 
 #[actix_web::main]
@@ -213,7 +202,7 @@ async fn main() -> std::io::Result<()> {
                     .guard(guard::Header("x-api-key", api_key))
                     .service(new_report),
             )
-            .service(Files::new("/view", HTML_REPORTS_DIR))
+            .service(Files::new("/view", config::HTML_REPORTS_DIR))
     })
     .bind(("0.0.0.0", 8080))?
     .run()

@@ -5,7 +5,7 @@ use git2::{
     CertificateCheckStatus, Cred, CredentialType, FetchOptions, RemoteCallbacks, Repository,
 };
 
-use crate::Request;
+use crate::{config, Request};
 
 /// Get path from ENV key SSH_KEY_PATH or default to id_ed25519 in the home .ssh directory
 pub fn get_ssh_key_path() -> PathBuf {
@@ -57,7 +57,7 @@ fn create_fetch_options<'a>() -> FetchOptions<'a> {
 /// Clone the repository, or pull if it already exist, [create_fetch_options] is used to provide authentication.
 pub fn pull_or_clone(request: &Request) -> anyhow::Result<PathBuf> {
     let repository_path =
-        PathBuf::from_str(crate::REPOSITORIES_DIR)?.join(request.repository_name());
+        PathBuf::from_str(config::REPOSITORIES_DIR)?.join(request.repository_name());
 
     let mut fo = create_fetch_options();
     if repository_path.exists() && repository_path.read_dir()?.next().is_some() {
