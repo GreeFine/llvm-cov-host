@@ -5,6 +5,7 @@ use regex::Regex;
 pub const JSON_REPORTS_DIR: &str = "./output/json-reports/";
 pub const HTML_REPORTS_DIR: &str = "./output/html-reports/";
 pub const REPOSITORIES_DIR: &str = "./output/repositories/";
+pub const SLED_REPORTS_DIR: &str = "./output/reports";
 
 pub static REPOSITORY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"^(.*@.*:|https:\/\/.*\.*.\/)(?<name>[A-z-]{0,100}\/[A-z-]{0,100})(\.git)?$"#)

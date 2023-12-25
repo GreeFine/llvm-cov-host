@@ -10,6 +10,7 @@ mod model;
 mod utils;
 
 mod config;
+mod storage;
 #[cfg(test)]
 mod tests;
 
@@ -26,7 +27,7 @@ use actix_web::{
     guard,
     middleware::Logger,
     put,
-    web::{self, Json},
+    web::{self, Data, Json},
     App, HttpServer, Responder,
 };
 use error::ApiError;
@@ -34,13 +35,13 @@ use log::{error, info};
 use model::Report;
 use serde::Deserialize;
 
-use crate::{compare::Comparison, error::ApiResult};
+use crate::{error::ApiResult, storage::TypedDb};
 
 #[derive(Debug, Deserialize)]
 struct Request {
     /// Url of the git repository associated to this report.
     ///
-    /// We need to clone the repository so we can package the sources into the export.
+    /// We need to clone the repository so we can package the sources files into the export.
     git: String,
     /// Branch of git repository associated to this report.
     branch: String,
@@ -116,7 +117,7 @@ fn raw_report_with_local_repository(
 }
 
 #[put("")]
-async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
+async fn new_report(storage: Data<TypedDb>, request: Json<Request>) -> ApiResult<impl Responder> {
     info!("Request git: {}, branch: {}", request.git, request.branch);
     let report: Report = serde_json::from_value(request.json_report.clone())?;
 
@@ -163,25 +164,14 @@ async fn new_report(request: Json<Request>) -> ApiResult<impl Responder> {
         return Err(error::ApiError::LlvmCovPretty);
     }
 
-    let base_comparison = {
-        let default_branch_reports = compare::DEFAULT_BRANCH_REPORTS
-            .read()
-            .expect("lock on default report");
-        if let Some(default_report) = default_branch_reports.get(&request.branch) {
-            compare::function_coverage(&report, default_report)
-        } else {
-            Comparison::default()
-        }
-    };
-    if request.branch == config::DEFAULT_REPORT_BRANCH {
-        let mut default_report = compare::DEFAULT_BRANCH_REPORTS
-            .write()
-            .expect("lock on default report");
+    let comparison =
+        compare::default_branch(&storage, &report, &request.branch).map_err(ApiError::from)?;
+    info!(
+        "Request git: {}, branch: {}: comparison: {:?}",
+        request.git, request.branch, comparison
+    );
 
-        default_report.insert(request.branch.clone(), report);
-    }
-
-    Ok(serde_json::to_string(&base_comparison))
+    Ok(serde_json::to_string(&comparison))
 }
 
 #[actix_web::main]
@@ -190,6 +180,7 @@ async fn main() -> std::io::Result<()> {
 
     let api_key: &'static str =
         Box::leak(Box::new(std::env::var("API_KEY").expect("API_KEY in env")));
+    let report_persistance = storage::TypedDb::new(sled::open(config::SLED_REPORTS_DIR)?);
 
     HttpServer::new(move || {
         App::new()
@@ -197,6 +188,7 @@ async fn main() -> std::io::Result<()> {
                 r#"%{r}a "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#,
             ))
             .app_data(web::JsonConfig::default().limit(1024 * 1024 * 100))
+            .app_data(web::Data::new(report_persistance.clone()))
             .service(
                 web::scope("/report")
                     .guard(guard::Header("x-api-key", api_key))

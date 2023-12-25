@@ -103,8 +103,8 @@ It also contain repository that where cloned, there is no cleanup or check on th
 - [x] Serving HTML reports
 - [x] Github Action example
 - [x] Works with cargo namespaces
-- [ ] Compare with previous reports
-- [ ] Keep coverage % history
+- [x] Compare with previous reports
+- [x] Keep coverage % history
 - [ ] Authentication
 - [ ] Permissions
 
