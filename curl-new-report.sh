@@ -11,8 +11,6 @@ STATUS_CODE=$(
       -H "Content-type: application/json" \
       -H "x-api-key: secret" \
       http://localhost:8080/report
-      # -H "x-api-key: SPHa8Bx4nSNBKgrD" \
-      # https://llvm-cov-host.greefine.fr/report
   )
 
 if [ $STATUS_CODE -eq '200' ]; then
