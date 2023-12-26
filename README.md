@@ -106,6 +106,7 @@ It also contain repository that where cloned, there is no cleanup or check on th
 - [x] Compare with previous reports
 - [x] Keep coverage % history
 - [x] Dashboard see progression and stats
+- [ ] Optimization for large reports
 - [ ] Dashboard group project & graphs 
 - [ ] Authentication
 - [ ] Permissions
