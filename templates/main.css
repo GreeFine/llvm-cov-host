@@ -1,4 +1,5 @@
 @import url('https://unpkg.com/@catppuccin/palette/css/catppuccin.css');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@500;700&display=swap');
 
 @media only screen and (max-width: 979px) {
   .ag-courses_item {
@@ -199,7 +200,7 @@ html {
 body {
   line-height: 1.2;
 
-  font-family: Arial, Verdana, Helvetica, sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
 
   -webkit-text-size-adjust: 100%;
@@ -338,7 +339,7 @@ body {
 .ag-courses-item_bg {
   height: 128px;
   width: 128px;
-  background-color: var(--ctp-macchiato-yellow);
+  background-color: var(--ctp-macchiato-mauve);
 
   z-index: 1;
   position: absolute;
@@ -361,13 +362,29 @@ body {
 }
 
 .ag-courses_item:nth-child(4n) .ag-courses-item_bg {
-  background-color:  var(--ctp-macchiato-);
+  background-color:  var(--ctp-macchiato-blue);
 }
 
 .ag-courses_item:nth-child(5n) .ag-courses-item_bg {
-  background-color:  var(--ctp-macchiato-);
+  background-color:  var(--ctp-macchiato-red);
 }
 
 .ag-courses_item:nth-child(6n) .ag-courses-item_bg {
-  background-color:  var(--ctp-macchiato-);
+  background-color:  var(--ctp-macchiato-peach);
+}
+
+.masthead h1 {
+  color: var(--ctp-macchiato-mauve);
+  font-size: 108px;
+  margin: 2rem;
+}
+
+.masthead p {
+  color: var(--ctp-macchiato-subtext1);
+  font-size: 32px;
+}
+
+.section {
+  text-align: center;
+  padding-top: 5em;
 }

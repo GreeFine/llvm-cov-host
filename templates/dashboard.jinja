@@ -4,11 +4,22 @@
 <head>
   <meta charset="UTF-8">
   <title>llvm cov host - Dashboard</title>
-  FIXME:
   <link rel="stylesheet" href="/css/main.css">
 </head>
 
 <body>
+  {% if reports.is_empty() %}
+  <section class="section">
+    <div class="masthead">
+      <h1><span>No projects yet.</span></h1>
+      <hr style="width: 40%;">
+      <p>
+        <span>The documentation, and steps to get started are in:</span>
+        <a href="https://github.com/GreeFine/llvm-cov-host">github.com/GreeFine/llvm-cov-host</a>
+      </p>
+    </div>
+  </section>
+  {% else %}  
   <div class="ag-format-container">
     <div class="ag-courses_box">
     {% for report in reports %}
@@ -43,5 +54,6 @@
         </a>
       </div>
     {% endfor %}
+  {% endif %}
 </body>
 </html>

@@ -39,8 +39,8 @@ resource "kubernetes_secret" "keys" {
   }
 
   data = {
-    id_ed25519       = fileexists("id_ed25519") ? file("id_ed25519") : ""
-    "id_ed25519.pub" = fileexists("id_ed25519.pub") ? file("id_ed25519.pub") : ""
+    id_ed25519       = fileexists("~/.ssh/id_ed25519_bot") ? file("~/.ssh/id_ed25519_bot") : ""
+    "id_ed25519.pub" = fileexists("~/.ssh/id_ed25519_bot.pub") ? file("~/.ssh/id_ed25519_bot.pub") : ""
   }
 
   immutable = true
