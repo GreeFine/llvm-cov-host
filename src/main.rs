@@ -38,7 +38,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new(
                 r#"%{r}a "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#,
             ))
-            .app_data(web::JsonConfig::default().limit(1024 * 1024 * 100))
+            .app_data(web::JsonConfig::default().limit(1024 * 1024 * 1000))
             .app_data(web::Data::new(report_persistance.clone()))
             .service(web::scope("/").service(routes::dashboard))
             .service(

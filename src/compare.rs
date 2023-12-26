@@ -13,7 +13,7 @@ pub struct Comparison {
 
 impl Display for Comparison {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.1}%, difference: {:1}%", self.new, self.diff)
+        write!(f, "{:.1}%, difference: {:.1}%", self.new, self.diff)
     }
 }
 
