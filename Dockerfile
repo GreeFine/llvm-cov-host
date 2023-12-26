@@ -23,4 +23,5 @@ RUN cargo install cargo-llvm-cov llvm-cov-pretty
 
 RUN apt update && apt install -y ca-certificates && rm -rf /var/lib/apt/lists/* 
 COPY --from=builder /app/target/release/llvm-cov-host /app/llvm-cov-host
+COPY templates/main.css templates/main.css
 ENTRYPOINT ["/app/llvm-cov-host"]

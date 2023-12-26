@@ -40,12 +40,12 @@ async fn main() -> std::io::Result<()> {
             ))
             .app_data(web::JsonConfig::default().limit(1024 * 1024 * 100))
             .app_data(web::Data::new(report_persistance.clone()))
+            .service(web::scope("/").service(routes::dashboard))
             .service(
                 web::scope("/report")
                     .guard(guard::Header("x-api-key", api_key))
                     .service(routes::new_report),
             )
-            .service(web::scope("/dashboard").service(routes::dashboard))
             .service(Files::new("/view", config::HTML_REPORTS_DIR))
             .service(
                 Files::new("/css", "templates/")
