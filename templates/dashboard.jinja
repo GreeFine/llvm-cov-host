@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>llvm cov host - Dashboard</title>
+  FIXME:
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+
+<body>
+  <div class="ag-format-container">
+    <div class="ag-courses_box">
+    {% for report in reports %}
+      <div class="ag-courses_item">
+        <a href="view/{{ report.name }}/index.html" class="ag-courses-item_link">
+          <div class="ag-courses-item_bg"></div>
+
+          <div class="ag-courses-item_title">
+            {{ report.repository_name }}
+          </div>
+          
+          <div class="ag-courses-item-box">
+            Branch:
+            <span class="ag-courses-item-span ag-courses-item-branch">
+              {{ report.branch }}
+            </span>
+          </div>
+
+          <div class="ag-courses-item-box">
+            Coverage:
+            <span class="ag-courses-item-span ag-courses-item-comparison">
+              {{ report.comparison }}
+            </span>
+          </div>
+
+          <div class="ag-courses-item-box">
+            Start:
+            <span class="ag-courses-item-span ag-courses-item-date">
+              {{ report.date.format("%Y-%m-%d %H:%M") }}
+            </span>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+</body>
+</html>

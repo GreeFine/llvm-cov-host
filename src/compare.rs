@@ -1,12 +1,20 @@
-use serde::Serialize;
+use std::fmt::Display;
+
+use serde::{Deserialize, Serialize};
 
 use crate::{config, model::Report, storage::TypedDb};
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Comparison {
     base: f64,
     new: f64,
     diff: f64,
+}
+
+impl Display for Comparison {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.1}%, difference: {:1}%", self.new, self.diff)
+    }
 }
 
 fn function_coverage<'a>(base: &'a Report, new: &'a Report) -> Comparison {

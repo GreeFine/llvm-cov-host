@@ -5,7 +5,7 @@ use git2::{
     CertificateCheckStatus, Cred, CredentialType, FetchOptions, RemoteCallbacks, Repository,
 };
 
-use crate::{config, Request};
+use crate::{config, report::Request};
 
 /// Get path from ENV key SSH_KEY_PATH or default to id_ed25519 in the home .ssh directory
 pub fn get_ssh_key_path() -> PathBuf {

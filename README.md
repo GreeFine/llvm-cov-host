@@ -105,6 +105,8 @@ It also contain repository that where cloned, there is no cleanup or check on th
 - [x] Works with cargo namespaces
 - [x] Compare with previous reports
 - [x] Keep coverage % history
+- [x] Dashboard see progression and stats
+- [ ] Dashboard group project & graphs 
 - [ ] Authentication
 - [ ] Permissions
 

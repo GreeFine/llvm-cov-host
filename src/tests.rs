@@ -2,7 +2,10 @@
 
 use std::{fs, path::Path};
 
-use crate::{find_matching_project_path, git, Request};
+use crate::{
+    git,
+    report::{find_matching_project_path, Request},
+};
 
 #[test]
 fn test_git_clone_http() {
