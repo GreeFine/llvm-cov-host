@@ -43,11 +43,20 @@ jobs:
       - name: Run tests and get coverage
         run: cargo llvm-cov --json > new-report.json
       - name: Prepare and send the coverage to the server
+        id: coverage
         run: |
           sed -i '1s#^#{ "name": "'$(git rev-parse --abbrev-ref HEAD)'", "git": "'$(git remote get-url origin)'", "branch": "main", "json_report": #' new-report.json
           echo '}' >> new-report.json
-          curl -X PUT \
+          json_report=$(curl -X PUT \
             -H "Content-type: application/json" \
             -H "x-api-key: ${{ secrets.API_KEY }}" \
             -d "@new-report.json" \
-            https://llvm-cov-host.greefine.fr/report
+            https://llvm-cov-host.greefine.fr/report)
+          echo "{json_report}"
+          echo "json_report=$json_report" >> "$GITHUB_OUTPUT"
+      - name: Comment PR with report result
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            __Code coverage result:__ **base**=${{ fromJson(steps.coverage.outputs.json_report).base }}, **difference**=${{ fromJson(steps.coverage.outputs.json_report).diff }}
+          comment_tag: execution
